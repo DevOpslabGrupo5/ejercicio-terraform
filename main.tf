@@ -27,6 +27,12 @@ variable "appId" {
 variable "password" {
 }
 
+variable "admin_username" {
+}
+
+variable "admin_password" {
+}
+
 resource "azurerm_resource_group" "grupo5" {
   name     = var.name
   location = var.location
@@ -73,4 +79,44 @@ resource "azurerm_kubernetes_cluster" "kubernetescluster" {
 
   role_based_access_control_enabled = true
 
+}
+
+resource "azurerm_network_interface" "networkinterface" {
+  name                = "networkinterface"
+  location            = azurerm_resource_group.grupo5.location
+  resource_group_name = azurerm_resource_group.grupo5.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "virtualmachine" {
+  name                  = "lmv-machine"
+  location              = azurerm_resource_group.grupo5.location
+  resource_group_name   = azurerm_resource_group.grupo5.name
+  network_interface_ids = [azurerm_network_interface.networkinterface.id]
+  size               = "Standard_D2ads_v5"
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    caching           = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  tags = {
+    environment = "staging"
+  }
+  computer_name = "hostname"
+  admin_username = var.admin_username
+  admin_password = var.admin_password
+  disable_password_authentication = false
 }
